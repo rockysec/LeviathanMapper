@@ -73,7 +73,7 @@ go run LeviathanMapper.go -domain example.com
 | Opción         | Descripción                                           | Ejemplo                              |
 |-----------------|-------------------------------------------------------|--------------------------------------|
 | `-domain`      | Dominio objetivo para buscar subdominios              | `-domain example.com`               |
-| `-concurrency` | Número de goroutines para ejecutar consultas en paralelo | `-concurrency 50`                   |
+| `-concurrency` | Número de goroutines para ejecutar consultas en paralelo (default 20) | `-concurrency 50`                   |
 | `-proxy`       | URL del proxy para anonimizar consultas               | `-proxy http://127.0.0.1:8080`       |
 
 ### Ejemplos de Uso
