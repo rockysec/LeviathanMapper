@@ -11,7 +11,7 @@
 - Integración opcional con APIs como:
   - **SecurityTrails**
   - **Shodan**
-  - **Security Trails**
+  - **Virus Total**
   - **CRT**
 - Prevención de duplicados en los resultados.
 - Validación de subdominios activos.
@@ -52,9 +52,9 @@
 Si deseas usar las funcionalidades avanzadas con APIs, configura las siguientes claves como variables de entorno:
 
 ```bash
-export SECURITYTRAILS_API_KEY=your_securitytrails_api_key
-export SHODAN_API_KEY=your_shodan_api_key
-export AMASS_API_KEY=your_amass_api_key
+export SECURITYTRAILS_API_KEY=73STA5UkrUb6W5sP1s7Z
+export SHODAN_API_KEY=YeFddqq6KJQPucPjsDaKNS0D3AtslSgc
+export VIRUSTOTAL_API_KEY=your_virustotal_api_key
 ```
 
 Si no configuras las claves, la herramienta funcionará en modo básico utilizando únicamente fuentes públicas.
