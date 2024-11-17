@@ -58,6 +58,32 @@ func fetchWithRetries(req *http.Request) (*http.Response, error) {
 	return nil, err
 }
 
+// Función para consultar Amass
+func fetchFromAmass(domain string) {
+	defer wg.Done()
+	if apiKeyAmass == "" {
+		fmt.Println("Amass no configurado. Omite resultados.")
+		return
+	}
+
+	url := fmt.Sprintf("https://api.amass.io/v1/subdomains/%s?apikey=%s", domain, apiKeyAmass)
+	req, _ := http.NewRequest("GET", url, nil)
+
+	resp, err := fetchWithRetries(req)
+	if err != nil {
+		fmt.Println("Error al consultar Amass:", err)
+		return
+	}
+	defer resp.Body.Close()
+
+	var result []string
+	if err := json.NewDecoder(resp.Body).Decode(&result); err == nil {
+		for _, sub := range result {
+			addSubdomain(sub)
+		}
+	}
+}
+
 // Función para consultar Crt.sh
 func fetchFromCrtSh(domain string) {
 	defer wg.Done()
@@ -136,32 +162,6 @@ func fetchFromShodan(domain string) {
 	}
 }
 
-// Función para consultar Amass
-func fetchFromAmass(domain string) {
-	defer wg.Done()
-	if apiKeyAmass == "" {
-		fmt.Println("Amass no configurado. Omite resultados.")
-		return
-	}
-
-	url := fmt.Sprintf("https://api.amass.io/v1/subdomains/%s?apikey=%s", domain, apiKeyAmass)
-	req, _ := http.NewRequest("GET", url, nil)
-
-	resp, err := fetchWithRetries(req)
-	if err != nil {
-		fmt.Println("Error al consultar Amass:", err)
-		return
-	}
-	defer resp.Body.Close()
-
-	var result []string
-	if err := json.NewDecoder(resp.Body).Decode(&result); err == nil {
-		for _, sub := range result {
-			addSubdomain(sub)
-		}
-	}
-}
-
 // Función para añadir subdominios evitando duplicados
 func addSubdomain(subdomain string) {
 	mu.Lock()
@@ -170,6 +170,15 @@ func addSubdomain(subdomain string) {
 		uniqueSubs[subdomain] = struct{}{}
 		fmt.Println("Subdominio encontrado:", subdomain)
 	}
+}
+
+// Función para imprimir todos los subdominios encontrados
+func printAllSubdomains() {
+	fmt.Println("\n=== Subdominios encontrados ===")
+	for subdomain := range uniqueSubs {
+		fmt.Println(subdomain)
+	}
+	fmt.Println("==============================")
 }
 
 // Función concurrente para procesar subdominios
@@ -214,5 +223,6 @@ func main() {
 	wg.Wait()
 	close(subdomainChan)
 
-	fmt.Println("Búsqueda completada.")
+	// Imprimir todos los subdominios encontrados
+	printAllSubdomains()
 }
