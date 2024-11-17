@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"net"
 	"net/http"
 	"os"
 	"sync"
@@ -21,9 +20,9 @@ const (
 // Configuración de las APIs
 var (
 	apiKeySecurityTrails = os.Getenv("SECURITYTRAILS_API_KEY")
-	apiKeyCensys         = os.Getenv("CENSYS_API_KEY")
 	apiKeyShodan         = os.Getenv("SHODAN_API_KEY")
-	apiKeyAmass          = os.Getenv("AMASS_API_KEY")
+	apiKeyCensys         = os.Getenv("CENSYS_API_KEY")
+	apiKeyVirusTotal     = os.Getenv("VIRUSTOTAL_API_KEY")
 )
 
 // Variables globales
@@ -56,32 +55,6 @@ func fetchWithRetries(req *http.Request) (*http.Response, error) {
 		time.Sleep(retryDelay)
 	}
 	return nil, err
-}
-
-// Función para consultar Amass
-func fetchFromAmass(domain string) {
-	defer wg.Done()
-	if apiKeyAmass == "" {
-		fmt.Println("Amass no configurado. Omite resultados.")
-		return
-	}
-
-	url := fmt.Sprintf("https://api.amass.io/v1/subdomains/%s?apikey=%s", domain, apiKeyAmass)
-	req, _ := http.NewRequest("GET", url, nil)
-
-	resp, err := fetchWithRetries(req)
-	if err != nil {
-		fmt.Println("Error al consultar Amass:", err)
-		return
-	}
-	defer resp.Body.Close()
-
-	var result []string
-	if err := json.NewDecoder(resp.Body).Decode(&result); err == nil {
-		for _, sub := range result {
-			addSubdomain(sub)
-		}
-	}
 }
 
 // Función para consultar Crt.sh
@@ -162,6 +135,37 @@ func fetchFromShodan(domain string) {
 	}
 }
 
+// Función para consultar VirusTotal
+func fetchFromVirusTotal(domain string) {
+	defer wg.Done()
+	if apiKeyVirusTotal == "" {
+		fmt.Println("VirusTotal no configurado. Omite resultados.")
+		return
+	}
+
+	url := fmt.Sprintf("https://www.virustotal.com/api/v3/domains/%s/subdomains", domain)
+	req, _ := http.NewRequest("GET", url, nil)
+	req.Header.Add("x-apikey", apiKeyVirusTotal)
+
+	resp, err := fetchWithRetries(req)
+	if err != nil {
+		fmt.Println("Error al consultar VirusTotal:", err)
+		return
+	}
+	defer resp.Body.Close()
+
+	var result map[string]interface{}
+	if err := json.NewDecoder(resp.Body).Decode(&result); err == nil {
+		if data, found := result["data"].([]interface{}); found {
+			for _, entry := range data {
+				if subdomain, ok := entry.(string); ok {
+					addSubdomain(subdomain)
+				}
+			}
+		}
+	}
+}
+
 // Función para añadir subdominios evitando duplicados
 func addSubdomain(subdomain string) {
 	mu.Lock()
@@ -181,25 +185,9 @@ func printAllSubdomains() {
 	fmt.Println("==============================")
 }
 
-// Función concurrente para procesar subdominios
-func processSubdomains() {
-	for subdomain := range subdomainChan {
-		if validateSubdomain(subdomain) {
-			fmt.Println("Subdominio activo:", subdomain)
-		}
-	}
-}
-
-// Validar si un subdominio está activo
-func validateSubdomain(subdomain string) bool {
-	_, err := net.LookupHost(subdomain)
-	return err == nil
-}
-
 func main() {
 	domain := flag.String("domain", "", "Dominio a buscar")
 	concurrencyFlag := flag.Int("concurrency", defaultConcurrency, "Número de goroutines concurrentes")
-	proxyFlag := flag.String("proxy", "", "URL del proxy (opcional)")
 	flag.Parse()
 
 	if *domain == "" {
@@ -208,7 +196,6 @@ func main() {
 	}
 
 	concurrency = *concurrencyFlag
-	proxyURL = *proxyFlag
 
 	// Iniciar búsqueda de subdominios
 	wg.Add(1)
@@ -218,7 +205,7 @@ func main() {
 	wg.Add(3)
 	go fetchFromSecurityTrails(*domain)
 	go fetchFromShodan(*domain)
-	go fetchFromAmass(*domain)
+	go fetchFromVirusTotal(*domain)
 
 	wg.Wait()
 	close(subdomainChan)
