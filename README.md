@@ -11,7 +11,8 @@
 - Integración opcional con APIs como:
   - **SecurityTrails**
   - **Shodan**
-  - **Amass**
+  - **Security Trails**
+  - **CRT**
 - Prevención de duplicados en los resultados.
 - Validación de subdominios activos.
 - Resultados agrupados y presentados al final de la ejecución.
