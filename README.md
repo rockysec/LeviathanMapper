@@ -53,8 +53,8 @@
 Si deseas usar las funcionalidades avanzadas con APIs, configura las siguientes claves como variables de entorno:
 
 ```bash
-export SECURITYTRAILS_API_KEY=73STA5UkrUb6W5sP1s7Z
-export SHODAN_API_KEY=YeFddqq6KJQPucPjsDaKNS0D3AtslSgc
+export SECURITYTRAILS_API_KEY=your_securitytrails_api_key
+export SHODAN_API_KEY=your_shodan_api_key
 export VIRUSTOTAL_API_KEY=your_virustotal_api_key
 ```
 
