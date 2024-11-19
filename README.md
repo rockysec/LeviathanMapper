@@ -12,7 +12,7 @@
   - **SecurityTrails**
   - **Shodan**
   - **Virus Total**
-  - **CRT**
+  - **CrtSh**
 - Prevención de duplicados en los resultados.
 - Validación de subdominios activos.
 - Resultados agrupados y presentados al final de la ejecución.
@@ -23,9 +23,10 @@
 
 1. **Golang 1.19+** instalado.
 2. Claves API opcionales para:
+   - CrtSh
    - SecurityTrails
    - Shodan
-   - Amass
+   - VirusTotal
 
 ## Instalación
 
