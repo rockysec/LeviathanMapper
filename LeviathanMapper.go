@@ -4,7 +4,9 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"sync"
 	"time"
@@ -21,34 +23,57 @@ const (
 var (
 	apiKeySecurityTrails = os.Getenv("SECURITYTRAILS_API_KEY")
 	apiKeyShodan         = os.Getenv("SHODAN_API_KEY")
-	apiKeyCensys         = os.Getenv("CENSYS_API_KEY")
 	apiKeyVirusTotal     = os.Getenv("VIRUSTOTAL_API_KEY")
 )
 
 // Variables globales
 var (
-	concurrency   int
-	proxyURL      string
-	subdomainChan = make(chan string, defaultConcurrency)
-	uniqueSubs    = make(map[string]struct{})
-	wg            sync.WaitGroup
-	mu            sync.Mutex // Mutex para evitar duplicados en el mapa
+	concurrency    int
+	proxyURL       string
+	subdomainChan  chan string
+	uniqueSubs     = make(map[string]struct{})
+	wg             sync.WaitGroup
+	mu             sync.Mutex // Mutex para evitar duplicados en el mapa
+	httpClient     *http.Client
 )
 
-// Configurar un cliente HTTP con soporte para proxies y reintentos
-func getHTTPClient() *http.Client {
-	client := &http.Client{Timeout: defaultTimeout}
-	return client
+// Configurar un cliente HTTP con soporte para proxies y timeouts
+func configureHTTPClient() {
+	transport := &http.Transport{}
+
+	if proxyURL != "" {
+		proxy, err := url.Parse(proxyURL)
+		if err != nil {
+			fmt.Println("Error en el formato del proxy:", err)
+			os.Exit(1)
+		}
+
+		// Validar si el proxy es alcanzable
+		conn, err := net.DialTimeout("tcp", proxy.Host, defaultTimeout)
+		if err != nil {
+			fmt.Println("Error al conectar con el proxy:", err)
+			os.Exit(1)
+		}
+		conn.Close()
+
+		// Configurar transporte con proxy
+		transport.Proxy = http.ProxyURL(proxy)
+		fmt.Println("Proxy configurado:", proxyURL)
+	}
+
+	httpClient = &http.Client{
+		Timeout:   defaultTimeout,
+		Transport: transport,
+	}
 }
 
 // Realizar una solicitud HTTP con reintentos
 func fetchWithRetries(req *http.Request) (*http.Response, error) {
-	client := getHTTPClient()
 	var resp *http.Response
 	var err error
 
 	for i := 0; i < retryLimit; i++ {
-		resp, err = client.Do(req)
+		resp, err = httpClient.Do(req)
 		if err == nil && resp.StatusCode == 200 {
 			return resp, nil
 		}
@@ -61,7 +86,9 @@ func fetchWithRetries(req *http.Request) (*http.Response, error) {
 func fetchFromCrtSh(domain string) {
 	defer wg.Done()
 	url := fmt.Sprintf("https://crt.sh/?q=%%25.%s&output=json", domain)
-	resp, err := http.Get(url)
+	req, _ := http.NewRequest("GET", url, nil)
+
+	resp, err := fetchWithRetries(req)
 	if err != nil {
 		fmt.Println("Error al consultar Crt.sh:", err)
 		return
@@ -168,17 +195,29 @@ func fetchFromVirusTotal(domain string) {
 
 // Función para añadir subdominios evitando duplicados
 func addSubdomain(subdomain string) {
-	mu.Lock()
+	mu.Lock() // Mutex para evitar condiciones de carrera
 	defer mu.Unlock()
+
+	// Ignorar subdominios que contengan '*'
+	if containsWildcard(subdomain) {
+		fmt.Println("Ignorando subdominio con wildcard:", subdomain)
+		return
+	}
+
 	if _, exists := uniqueSubs[subdomain]; !exists {
 		uniqueSubs[subdomain] = struct{}{}
 		fmt.Println("Subdominio encontrado:", subdomain)
 	}
 }
 
+// Función para verificar si un subdominio contiene un wildcard '*'
+func containsWildcard(subdomain string) bool {
+	return len(subdomain) > 0 && subdomain[0] == '*'
+}
+
 // Función para imprimir todos los subdominios encontrados
 func printAllSubdomains() {
-	fmt.Println("\n=== Subdominios encontrados ===")
+	fmt.Println("\n=== Subdominios únicos encontrados ===")
 	for subdomain := range uniqueSubs {
 		fmt.Println(subdomain)
 	}
@@ -188,6 +227,7 @@ func printAllSubdomains() {
 func main() {
 	domain := flag.String("domain", "", "Dominio a buscar")
 	concurrencyFlag := flag.Int("concurrency", defaultConcurrency, "Número de goroutines concurrentes")
+	proxyFlag := flag.String("proxy", "", "URL del proxy (opcional)")
 	flag.Parse()
 
 	if *domain == "" {
@@ -196,13 +236,16 @@ func main() {
 	}
 
 	concurrency = *concurrencyFlag
+	proxyURL = *proxyFlag
 
-	// Iniciar búsqueda de subdominios
-	wg.Add(1)
+	// Configurar el cliente HTTP
+	configureHTTPClient()
+
+	subdomainChan = make(chan string, concurrency)
+
+	// Ejecutar búsqueda de subdominios
+	wg.Add(4)
 	go fetchFromCrtSh(*domain)
-
-	// Consultar APIs solo si están configuradas
-	wg.Add(3)
 	go fetchFromSecurityTrails(*domain)
 	go fetchFromShodan(*domain)
 	go fetchFromVirusTotal(*domain)
