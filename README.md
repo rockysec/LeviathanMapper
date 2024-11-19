@@ -110,7 +110,7 @@ go run LeviathanMapper.go -domain example.com
 Subdominio encontrado: sub1.example.com
 Subdominio encontrado: sub2.example.com
 
-=== Subdominios encontrados ===
+=== Subdominios únicos encontrados ===
 sub1.example.com
 sub2.example.com
 ==============================
