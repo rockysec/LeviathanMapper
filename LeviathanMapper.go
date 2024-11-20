@@ -19,46 +19,46 @@ const (
 	retryDelay         = 2 * time.Second
 )
 
-// Configuración de las APIs
+// API Variables
 var (
 	apiKeySecurityTrails = os.Getenv("SECURITYTRAILS_API_KEY")
 	apiKeyShodan         = os.Getenv("SHODAN_API_KEY")
 	apiKeyVirusTotal     = os.Getenv("VIRUSTOTAL_API_KEY")
 )
 
-// Variables globales
+// Global Variables
 var (
 	concurrency    int
 	proxyURL       string
 	subdomainChan  chan string
 	uniqueSubs     = make(map[string]struct{})
 	wg             sync.WaitGroup
-	mu             sync.Mutex // Mutex para evitar duplicados en el mapa
+	mu             sync.Mutex // Mutex to avoid duplicates in the map
 	httpClient     *http.Client
 )
 
-// Configurar un cliente HTTP con soporte para proxies y timeouts
+// Configure an HTTP client with support for proxies and timeouts
 func configureHTTPClient() {
 	transport := &http.Transport{}
 
 	if proxyURL != "" {
 		proxy, err := url.Parse(proxyURL)
 		if err != nil {
-			fmt.Println("Error en el formato del proxy:", err)
+			fmt.Println("Error in proxy format:", err)
 			os.Exit(1)
 		}
 
 		// Validar si el proxy es alcanzable
 		conn, err := net.DialTimeout("tcp", proxy.Host, defaultTimeout)
 		if err != nil {
-			fmt.Println("Error al conectar con el proxy:", err)
+			fmt.Println("Error connecting to the proxy:", err)
 			os.Exit(1)
 		}
 		conn.Close()
 
 		// Configurar transporte con proxy
 		transport.Proxy = http.ProxyURL(proxy)
-		fmt.Println("Proxy configurado:", proxyURL)
+		fmt.Println("Proxy configured:", proxyURL)
 	}
 
 	httpClient = &http.Client{
@@ -67,7 +67,7 @@ func configureHTTPClient() {
 	}
 }
 
-// Realizar una solicitud HTTP con reintentos
+// Perform an HTTP request with retries
 func fetchWithRetries(req *http.Request) (*http.Response, error) {
 	var resp *http.Response
 	var err error
@@ -82,7 +82,7 @@ func fetchWithRetries(req *http.Request) (*http.Response, error) {
 	return nil, err
 }
 
-// Función para consultar Crt.sh
+// Function to query Crt.sh
 func fetchFromCrtSh(domain string) {
 	defer wg.Done()
 	url := fmt.Sprintf("https://crt.sh/?q=%%25.%s&output=json", domain)
