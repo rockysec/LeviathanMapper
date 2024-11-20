@@ -1,5 +1,4 @@
-
-<img width="486" alt="image" src="https://github.com/user-attachments/assets/08c4a1b1-1c2b-451e-898d-f009ba2d36aa">
+![kraken](https://github.com/user-attachments/assets/08c4a1b1-1c2b-451e-898d-f009ba2d36aa)
 
 # LeviathanMapper
 
