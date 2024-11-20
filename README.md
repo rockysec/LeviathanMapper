@@ -134,7 +134,7 @@ Si deseas contribuir al proyecto, abre un issue o envía un pull request. ¡Toda
 
 ## Licencia
 
-Este proyecto está licenciado bajo la [MIT License](LICENSE).
+<!--- Este proyecto está licenciado bajo la [MIT License](LICENSE). -->
 
 ---
 
