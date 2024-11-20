@@ -48,7 +48,7 @@ func configureHTTPClient() {
 			os.Exit(1)
 		}
 
-		// Validar si el proxy es alcanzable
+		// Validate if the proxy is reachable
 		conn, err := net.DialTimeout("tcp", proxy.Host, defaultTimeout)
 		if err != nil {
 			fmt.Println("Error connecting to the proxy:", err)
@@ -56,7 +56,7 @@ func configureHTTPClient() {
 		}
 		conn.Close()
 
-		// Configurar transporte con proxy
+		// Configure transport with proxy
 		transport.Proxy = http.ProxyURL(proxy)
 		fmt.Println("Proxy configured:", proxyURL)
 	}
@@ -90,7 +90,7 @@ func fetchFromCrtSh(domain string) {
 
 	resp, err := fetchWithRetries(req)
 	if err != nil {
-		fmt.Println("Error al consultar Crt.sh:", err)
+		fmt.Println("Error querying Crt.sh:", err)
 		return
 	}
 	defer resp.Body.Close()
@@ -105,11 +105,11 @@ func fetchFromCrtSh(domain string) {
 	}
 }
 
-// Función para consultar SecurityTrails
+// Function to query SecurityTrails
 func fetchFromSecurityTrails(domain string) {
 	defer wg.Done()
 	if apiKeySecurityTrails == "" {
-		fmt.Println("SecurityTrails no configurado. Omite resultados.")
+		fmt.Println("SecurityTrails not configured. Skipping results.")
 		return
 	}
 
@@ -119,7 +119,7 @@ func fetchFromSecurityTrails(domain string) {
 
 	resp, err := fetchWithRetries(req)
 	if err != nil {
-		fmt.Println("Error al consultar SecurityTrails:", err)
+		fmt.Println("Error querying SecurityTrails:", err)
 		return
 	}
 	defer resp.Body.Close()
@@ -134,11 +134,11 @@ func fetchFromSecurityTrails(domain string) {
 	}
 }
 
-// Función para consultar Shodan
+// Function to query Shodan
 func fetchFromShodan(domain string) {
 	defer wg.Done()
 	if apiKeyShodan == "" {
-		fmt.Println("Shodan no configurado. Omite resultados.")
+		fmt.Println("Shodan not configured. Skipping results.")
 		return
 	}
 
@@ -147,7 +147,7 @@ func fetchFromShodan(domain string) {
 
 	resp, err := fetchWithRetries(req)
 	if err != nil {
-		fmt.Println("Error al consultar Shodan:", err)
+		fmt.Println("Error querying Shodan:", err)
 		return
 	}
 	defer resp.Body.Close()
@@ -162,11 +162,11 @@ func fetchFromShodan(domain string) {
 	}
 }
 
-// Función para consultar VirusTotal
+// Function to query VirusTotal
 func fetchFromVirusTotal(domain string) {
 	defer wg.Done()
 	if apiKeyVirusTotal == "" {
-		fmt.Println("VirusTotal no configurado. Omite resultados.")
+		fmt.Println("VirusTotal not configured. Skipping results.")
 		return
 	}
 
@@ -176,7 +176,7 @@ func fetchFromVirusTotal(domain string) {
 
 	resp, err := fetchWithRetries(req)
 	if err != nil {
-		fmt.Println("Error al consultar VirusTotal:", err)
+		fmt.Println("Error querying VirusTotal:", err)
 		return
 	}
 	defer resp.Body.Close()
@@ -193,31 +193,31 @@ func fetchFromVirusTotal(domain string) {
 	}
 }
 
-// Función para añadir subdominios evitando duplicados
+// Function to add subdomains avoiding duplicates
 func addSubdomain(subdomain string) {
-	mu.Lock() // Mutex para evitar condiciones de carrera
+	mu.Lock() // Mutex to avoid race conditions
 	defer mu.Unlock()
 
-	// Ignorar subdominios que contengan '*'
+	// Ignore subdomains containing '*'
 	if containsWildcard(subdomain) {
-		fmt.Println("Ignorando subdominio con wildcard:", subdomain)
+		fmt.Println("Ignoring subdomain with wildcard:", subdomain)
 		return
 	}
 
 	if _, exists := uniqueSubs[subdomain]; !exists {
 		uniqueSubs[subdomain] = struct{}{}
-		fmt.Println("Subdominio encontrado:", subdomain)
+		fmt.Println("Subdomain found:", subdomain)
 	}
 }
 
-// Función para verificar si un subdominio contiene un wildcard '*'
+// Function to check if a subdomain contains a wildcard '*'
 func containsWildcard(subdomain string) bool {
 	return len(subdomain) > 0 && subdomain[0] == '*'
 }
 
-// Función para imprimir todos los subdominios encontrados
+// Function to print all found subdomains
 func printAllSubdomains() {
-	fmt.Println("\n=== Subdominios únicos encontrados ===")
+	fmt.Println("\n=== Unique Subdomains Found ===")
 	for subdomain := range uniqueSubs {
 		fmt.Println(subdomain)
 	}
@@ -225,25 +225,25 @@ func printAllSubdomains() {
 }
 
 func main() {
-	domain := flag.String("domain", "", "Dominio a buscar")
-	concurrencyFlag := flag.Int("concurrency", defaultConcurrency, "Número de goroutines concurrentes")
-	proxyFlag := flag.String("proxy", "", "URL del proxy (opcional)")
+	domain := flag.String("domain", "", "Domain to search")
+	concurrencyFlag := flag.Int("concurrency", defaultConcurrency, "Number of concurrent goroutines")
+	proxyFlag := flag.String("proxy", "", "Proxy URL (optional)")
 	flag.Parse()
 
 	if *domain == "" {
-		fmt.Println("Uso: go run main.go -domain example.com")
+		fmt.Println("Usage: go run main.go -domain example.com")
 		return
 	}
 
 	concurrency = *concurrencyFlag
 	proxyURL = *proxyFlag
 
-	// Configurar el cliente HTTP
+	// Configure the HTTP client
 	configureHTTPClient()
 
 	subdomainChan = make(chan string, concurrency)
 
-	// Ejecutar búsqueda de subdominios
+	// Execute subdomain search
 	wg.Add(4)
 	go fetchFromCrtSh(*domain)
 	go fetchFromSecurityTrails(*domain)
@@ -253,6 +253,6 @@ func main() {
 	wg.Wait()
 	close(subdomainChan)
 
-	// Imprimir todos los subdominios encontrados
+	// Print all found subdomains
 	printAllSubdomains()
 }
