@@ -1,5 +1,4 @@
-
-<img width="486" alt="image" src="https://github.com/user-attachments/assets/08c4a1b1-1c2b-451e-898d-f009ba2d36aa">
+![kraken](https://github.com/user-attachments/assets/08c4a1b1-1c2b-451e-898d-f009ba2d36aa)
 
 # LeviathanMapper
 
@@ -12,7 +11,7 @@
   - **SecurityTrails**
   - **Shodan**
   - **Virus Total**
-  - **CRT**
+  - **CrtSh**
 - Prevención de duplicados en los resultados.
 - Validación de subdominios activos.
 - Resultados agrupados y presentados al final de la ejecución.
@@ -23,9 +22,10 @@
 
 1. **Golang 1.19+** instalado.
 2. Claves API opcionales para:
+   - CrtSh
    - SecurityTrails
    - Shodan
-   - Amass
+   - VirusTotal
 
 ## Instalación
 
@@ -52,8 +52,8 @@
 Si deseas usar las funcionalidades avanzadas con APIs, configura las siguientes claves como variables de entorno:
 
 ```bash
-export SECURITYTRAILS_API_KEY=73STA5UkrUb6W5sP1s7Z
-export SHODAN_API_KEY=YeFddqq6KJQPucPjsDaKNS0D3AtslSgc
+export SECURITYTRAILS_API_KEY=your_securitytrails_api_key
+export SHODAN_API_KEY=your_shodan_api_key
 export VIRUSTOTAL_API_KEY=your_virustotal_api_key
 ```
 
@@ -109,7 +109,7 @@ go run LeviathanMapper.go -domain example.com
 Subdominio encontrado: sub1.example.com
 Subdominio encontrado: sub2.example.com
 
-=== Subdominios encontrados ===
+=== Subdominios únicos encontrados ===
 sub1.example.com
 sub2.example.com
 ==============================
@@ -134,7 +134,7 @@ Si deseas contribuir al proyecto, abre un issue o envía un pull request. ¡Toda
 
 ## Licencia
 
-Este proyecto está licenciado bajo la [MIT License](LICENSE).
+<!--- Este proyecto está licenciado bajo la [MIT License](LICENSE). -->
 
 ---
 
